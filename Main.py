@@ -1,12 +1,13 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 from SearchAnswer import get_answer_from_question
 from ReadClipboard import monitor_clipboard
+from Extract import extract_title_and_questions, write_questions_to_excel
 
 class QuestionAnswerApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("英语词汇测试辅助工具v1.0")
+        self.root.title("英语词汇测试辅助工具v2.0")
         
         # 设置窗口大小
         window_width = 500
@@ -16,52 +17,27 @@ class QuestionAnswerApp:
         screen_width = root.winfo_screenwidth()
         screen_height = root.winfo_screenheight()
         
-        # 计算窗口左上角的位置（右半部分居中）
-        x = (screen_width // 2 + (screen_width // 2 - window_width) // 2)
+        # 计算窗口居中的位置
+        x = (screen_width - window_width) // 2
         y = (screen_height - window_height) // 2
         
         # 设置窗口位置和大小
         root.geometry(f"{window_width}x{window_height}+{x}+{y}")
         
-        # 创建题干标签和文本框
-        self.question_label = ttk.Label(root, text="题干:")
-        self.question_label.pack(pady=5)
-        
-        self.question_text = tk.Text(root, height=5, width=60)
-        self.question_text.pack(pady=5)
-        
-        # 创建答案标签和文本框
-        self.answer_label = ttk.Label(root, text="答案:")
-        self.answer_label.pack(pady=5)
-        
-        self.answer_text = tk.Text(root, height=5, width=60)
-        self.answer_text.pack(pady=5)
-        
-        # 启动剪切板监控
-        self.monitor_clipboard()
+        # 创建按钮
+        self.process_button = ttk.Button(root, text="我已将测试页面复制到剪切板", command=self.process_clipboard)
+        self.process_button.pack(expand=True)
     
-    def monitor_clipboard(self):
+    def process_clipboard(self):
         try:
             new_clipboard_content = next(monitor_clipboard())
-            self.update_question_and_answer(new_clipboard_content)
+            title, questions = extract_title_and_questions(new_clipboard_content)
+            write_questions_to_excel(title, questions)
+            messagebox.showinfo("成功", "题目信息已保存到 Excel 文件")
         except StopIteration:
-            pass
-        # 每秒检查一次剪切板
-        self.root.after(1000, self.monitor_clipboard)
-    
-    def update_question_and_answer(self, question_text):
-        # 清空题干和答案文本框
-        self.question_text.delete('1.0', tk.END)
-        self.answer_text.delete('1.0', tk.END)
-        
-        # 显示新的题干
-        self.question_text.insert(tk.END, question_text)
-        
-        # 获取答案
-        answer = get_answer_from_question(question_text)
-        
-        # 显示答案
-        self.answer_text.insert(tk.END, answer)
+            messagebox.showerror("错误", "无法读取剪切板内容")
+        except Exception as e:
+            messagebox.showerror("错误", f"处理过程中发生错误: {e}")
 
 if __name__ == "__main__":
     root = tk.Tk()
